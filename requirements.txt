@@ -1,0 +1,6 @@
+openai-agents==0.3.2
+chromadb==1.1.0
+pandas==2.3.2
+numpy==2.2.6
+pydantic==2.11.9
+python-dotenv==1.1.1
