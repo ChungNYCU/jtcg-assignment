@@ -1,0 +1,36 @@
+# Virtual Environment
+venv/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# ChromaDB
+chroma_db/
+*.db
+
+# Logs
+*.log
+logs/
+
+# Test outputs
+test_results/
+conversation_results.xlsx
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
