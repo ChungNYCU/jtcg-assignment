@@ -2,6 +2,8 @@
 
 A sophisticated AI-powered customer service agent for JTCG Shop, built with OpenAI Agents SDK and ChromaDB vector database. This agent provides intelligent customer support across FAQ, product discovery, order tracking, and human handover services.
 
+- 📊 **Human Review**: [Detailed evaluation of all 323 conversations](https://docs.google.com/spreadsheets/d/1DeQZt_z3TUyKAo277IZwc0WbyeCtfqVhaAv1xle3FzA/edit?usp=sharing)
+
 ## 🚀 Features
 
 ### Core Capabilities
@@ -119,8 +121,9 @@ The evaluation framework provides:
 
 Recent test results:
 - ✅ **100% Success Rate** across 323 conversations
-- ✅ **78% Content Accuracy** from LLM judge evaluation
-- ✅ **54.2% Source Link Coverage** with proper attribution
+- ✅ **98.1% Content Accuracy** from LLM judge evaluation
+- ✅ **71.5% Source Link Coverage** with proper attribution
+
 
 ## 🎯 Brand Voice & Guidelines
 
