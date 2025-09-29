@@ -46,7 +46,7 @@ A sophisticated AI-powered customer service agent for JTCG Shop, built with Open
 - **Knowledge Base**: `ref_data/ai-eng-test-sample-knowledges.csv` (42 FAQ items)
 - **Product Catalog**: `ref_data/ai-eng-test-sample-products.csv` (6 products)
 - **Test Conversations**: `ref_data/ai-eng-test-sample-conversations.json` (323 test cases)
-- **Order Database**: Embedded in `task.md` with multiple user scenarios
+- **Order Database**: `ref_data/orders.json` with multiple user scenarios
 
 ## 🛠️ Setup & Installation
 
@@ -104,10 +104,10 @@ python jtcg_agent.py
 # Vector database tests
 ./venv/Scripts/python.exe test_vector_db.py
 
-# Small batch conversation test
-./venv/Scripts/python.exe test_small_batch.py
+# Conversation tests
+./venv/Scripts/python.exe test_conversations.py
 
-# Full evaluation (323 conversations)
+# Full evaluation with LLM judge (323 conversations)
 ./venv/Scripts/python.exe run_full_evaluation.py
 ```
 
@@ -177,12 +177,16 @@ jtcg-assignment/
 ├── agent_functions.py         # Specialized function tools
 ├── vector_db.py              # ChromaDB vector database
 ├── data_processor.py         # Data loading and management
-├── test_*.py                 # Testing framework
-├── run_full_evaluation.py    # Comprehensive evaluation
+├── test_conversations.py     # Conversation testing framework
+├── test_data_processor.py    # Data processor tests
+├── test_vector_db.py         # Vector database tests
+├── run_full_evaluation.py    # Comprehensive evaluation with LLM judge
+├── handover_simple_mock.py   # Human handover mock service
 ├── ref_data/                 # Data sources
 │   ├── ai-eng-test-sample-knowledges.csv
 │   ├── ai-eng-test-sample-products.csv
-│   └── ai-eng-test-sample-conversations.json
+│   ├── ai-eng-test-sample-conversations.json
+│   └── orders.json
 ├── requirements.txt          # Python dependencies
 ├── CLAUDE.md                # Development guidelines
 └── README.md                # This file
