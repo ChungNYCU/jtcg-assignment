@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
 import os
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 from agents import Agent, Runner, function_tool
 from data_processor import DataProcessor
 from vector_db import VectorDB
 from agent_functions import JTCGAgentFunctions
-import json
 
 class JTCGCRMAgent:
     def __init__(self, openai_api_key: str):
@@ -140,27 +139,34 @@ D. 真人客服轉接 - 使用 handover_to_human 工具
 
 記住：以自然、專業、貼心的方式回應，就像真正的 JTCG Shop 客服人員。"""
 
-    def chat(self, message: str, conversation_history: Optional[List[Dict]] = None) -> str:
+    def chat(self, message: str, conversation_input=None) -> str:
         """
         Process a chat message and return response
 
         Args:
-            message: User's message
-            conversation_history: Optional previous conversation context
+            message: User's message or input list for multi-turn conversations
+            conversation_input: Optional conversation input list (for multi-turn)
 
         Returns:
             Agent's response
         """
         try:
-            # Detect intent to provide context
-            intent = self.agent_functions.detect_intent(message)
+            # If conversation_input is provided, use it directly (it includes history)
+            if conversation_input is not None:
+                # conversation_input already includes the history and current message
+                result = Runner.run_sync(self.agent, conversation_input)
+                return result.final_output
+            else:
+                # Single turn conversation
+                # Detect intent to provide context
+                intent = self.agent_functions.detect_intent(message)
 
-            # Add intent context to the message
-            contextual_message = f"[用戶意圖: {intent}] {message}"
+                # Add intent context to the message
+                contextual_message = f"[用戶意圖: {intent}] {message}"
 
-            # Run the agent using Runner.run_sync
-            result = Runner.run_sync(self.agent, contextual_message)
-            return result.final_output
+                # Run the agent using Runner.run_sync
+                result = Runner.run_sync(self.agent, contextual_message)
+                return result.final_output
 
         except Exception as e:
             return f"很抱歉，處理您的請求時發生錯誤。請稍後再試或聯繫我們的客服團隊。錯誤信息：{str(e)}"

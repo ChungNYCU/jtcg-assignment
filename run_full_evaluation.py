@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
 
-import os
-import json
+# Standard library imports
+import argparse
 import csv
+import json
+import logging
+import os
 import time
 from datetime import datetime
 from typing import List, Dict, Any
-from pathlib import Path
-from test_conversations import ConversationTester
-from agents import Agent, Runner, function_tool
+
+# Third-party imports
 from dotenv import load_dotenv
-import logging
+
+# Local imports
+from agents import Agent, Runner
+from test_conversations import ConversationTester
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -30,44 +35,45 @@ class LLMJudgeEvaluator:
         )
 
     def _get_judge_instructions(self) -> str:
-        return """你是 JTCG Shop 客服回應評估專家。你的任務是評估 AI 客服的回應品質。
+        return  """
+                你是 JTCG Shop 客服回應評估專家。你的任務是評估 AI 客服的回應品質。 https://example.com 是JTCG的品牌網站。
 
-JTCG Shop 服務範圍：
-1. FAQ 問答（退換貨、保固、發票、運費、付款方式等政策）
-2. 產品推薦與諮詢（螢幕臂、支架、VESA規格、相容性等）
-3. 訂單查詢與追蹤（需要 user_id 或 order_id）
-4. 真人客服轉接（需要 email 驗證）
+                JTCG Shop 服務範圍：
+                1. FAQ 問答（退換貨、保固、發票、運費、付款方式等政策）
+                2. 產品推薦與諮詢（螢幕臂、支架、VESA規格、相容性等）
+                3. 訂單查詢與追蹤（需要 user_id 或 order_id）
+                4. 真人客服轉接（需要 email 驗證）
 
-評估標準：
-within_scope: 是否屬於 JTCG 服務範圍？
-- True: 問題是關於上述 4 個領域
-- False: 問題與 JTCG 業務無關（如天氣、股票、程式設計等）
+                評估標準：
+                within_scope: 是否屬於 JTCG 服務範圍？
+                - True: 問題是關於上述 4 個領域
+                - False: 問題與 JTCG 業務無關（如天氣、股票、程式設計等）
 
-correct_content: 回答內容是否正確？
-- True: 回答準確、有用、符合 JTCG 政策
-- False: 回答錯誤、誤導、不完整
+                correct_content: 回答內容是否正確？
+                - True: 回答準確、有用、符合 JTCG 政策、
+                - False: 回答錯誤、誤導、不完整
 
-評估時請考慮：
-- 是否提供正確的連結和來源
-- 是否符合 JTCG 品牌語調
-- 是否提供可行的下一步建議
-- 是否避免編造不存在的資訊
-- https://example.com/jtcg 是品牌網站無誤 並不是錯誤的 domain name
+                評估時請考慮：
+                - 是否提供正確的連結和來源
+                - 是否符合 JTCG 品牌語調
+                - 是否提供可行的下一步建議
+                - 是否避免編造不存在的資訊
 
-請以 JSON 格式回應：{"within_scope": true/false, "correct_content": true/false, "reasoning": "評估理由"}"""
+                請以 JSON 格式回應：{"within_scope": true/false, "correct_content": true/false, "reasoning": "評估理由"}
+                """
 
     def evaluate_response(self, chat_history: str) -> Dict[str, Any]:
         """Evaluate a conversation based on complete chat history"""
         try:
             evaluation_prompt = f"""
-請評估以下 JTCG 客服對話：
+                                請評估以下 JTCG 客服對話：
 
-完整對話記錄：
-{chat_history}
+                                完整對話記錄：
+                                {chat_history}
 
-請根據 JTCG 服務範圍和回答品質評估，並以 JSON 格式回應。
-評估時請考慮對話的完整脈絡，包括用戶的問題和客服的回應是否符合上下文，以及整個對話的質量。
-"""
+                                請根據 JTCG 服務範圍和回答品質評估，並以 JSON 格式回應。
+                                評估時請考慮對話的完整脈絡，包括用戶的問題和客服的回應是否符合上下文，以及整個對話的質量。
+                                """
 
             result = Runner.run_sync(self.judge_agent, evaluation_prompt)
             response_text = result.final_output
@@ -169,28 +175,17 @@ class FullEvaluationRunner:
             writer.writeheader()
 
             for result in results:
-                # Prepare row data
-                row = {field: result.get(field, "") for field in fieldnames}
+                # Clean up any values that might cause CSV issues
+                clean_result = {}
+                for key, value in result.items():
+                    if isinstance(value, str):
+                        # Replace newlines with literal \n to avoid multi-line cells
+                        clean_result[key] = value.replace('\n', '\\n').replace('\r', '\\r').replace('\t', ' ')
+                    else:
+                        clean_result[key] = value
 
-                # Convert multi-line strings to single lines for better CSV viewing
-                def format_for_csv(text):
-                    if not text:
-                        return ""
-                    # Replace newlines with \\n for visual representation
-                    formatted = str(text).replace('\n', '\\n').replace('\r', '\\r')
-                    # Replace tabs with spaces for better readability
-                    formatted = formatted.replace('\t', ' ')
-                    return formatted
-
-                # Format ALL text fields to ensure single-line display
-                row["user_message"] = format_for_csv(row["user_message"])
-                row["agent_response"] = format_for_csv(row["agent_response"])
-                row["error"] = format_for_csv(row["error"])
-                row["reasoning"] = format_for_csv(row["reasoning"])
-                row["manual_review_notes"] = format_for_csv(row["manual_review_notes"])
-
-                # Keep full text for all fields - no truncation
-
+                # Ensure all required fieldnames have values
+                row = {field: clean_result.get(field, "") for field in fieldnames}
                 writer.writerow(row)
 
         logger.info(f"Evaluation results saved to {filename}")
@@ -249,6 +244,15 @@ class FullEvaluationRunner:
 
 def main():
     """Main function to run evaluation"""
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Run JTCG AI Agent evaluation with LLM judge')
+    parser.add_argument('--max-conversations', '-n', type=int, default=None,
+                        help='Maximum number of conversations to test (default: all 323 conversations)')
+    parser.add_argument('--start-from', '-s', type=int, default=0,
+                        help='Start evaluation from conversation number (0-based index, default: 0)')
+
+    args = parser.parse_args()
+
     # Load environment variables
     load_dotenv()
     api_key = os.getenv("OPENAI_API_KEY")
@@ -258,30 +262,44 @@ def main():
         return
 
     print("JTCG AI AGENT - EVALUATION WITH LLM JUDGE")
-    print("Running FULL evaluation on all 323 conversations (no text truncation)...")
+
+    if args.max_conversations:
+        print(f"Running evaluation on {args.max_conversations} conversations (starting from {args.start_from})")
+    else:
+        print("Running FULL evaluation on all 323 conversations")
+
+    if args.start_from > 0:
+        print(f"Starting from conversation #{args.start_from}")
 
     # Initialize evaluator
     print("Initializing evaluators...")
     evaluator = FullEvaluationRunner(api_key)
 
-    # Run evaluation on ALL conversations
-    print("Starting FULL evaluation (all 323 conversations)...")
-    results = evaluator.run_full_evaluation(max_conversations=None, start_from=0)
+    # Run evaluation with specified parameters
+    print("Starting evaluation...")
+    results = evaluator.run_full_evaluation(max_conversations=args.max_conversations, start_from=args.start_from)
 
     # Save results
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    csv_filename = f"jtcg_evaluation_test_{timestamp}.csv"
+    if args.max_conversations:
+        csv_filename = f"jtcg_evaluation_{args.max_conversations}conversations_{timestamp}.csv"
+    else:
+        csv_filename = f"jtcg_evaluation_full_{timestamp}.csv"
+
     evaluator.save_evaluation_results(results, csv_filename)
 
     # Generate and print summary
     summary = evaluator.generate_evaluation_summary(results)
     evaluator.print_evaluation_summary(summary)
 
-    print(f"\nFULL EVALUATION COMPLETE!")
+    print(f"\nEVALUATION COMPLETE!")
     print(f"Results saved to: {csv_filename}")
     print("Review the CSV file for detailed LLM judge evaluations.")
     print("Complete conversation text included (no truncation).")
-    print("Each conversation may contain multiple rounds of user-agent interaction.")
+    if args.max_conversations:
+        print(f"Tested {len(results)} conversations out of {args.max_conversations} requested.")
+    else:
+        print("Each conversation may contain multiple rounds of user-agent interaction.")
 
 if __name__ == "__main__":
     main()
