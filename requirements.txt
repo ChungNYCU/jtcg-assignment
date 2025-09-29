@@ -1,6 +1,18 @@
+# Core AI and Agent Framework
 openai-agents==0.3.2
+
+# Vector Database and Embeddings
 chromadb==1.1.0
+
+# Data Processing and Analysis
 pandas==2.3.2
 numpy==2.2.6
+
+# Data Validation and Models
 pydantic==2.11.9
+
+# Environment Configuration
 python-dotenv==1.1.1
+
+# HTTP Client (dependency for openai-agents)
+httpx>=0.24.0
