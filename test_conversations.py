@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 
-import os
-import json
+# Standard library imports
 import csv
+import json
+import logging
 import time
 from datetime import datetime
-from typing import List, Dict, Any
 from pathlib import Path
+from typing import List, Dict, Any
+
+# Local imports
 from jtcg_agent import JTCGCRMAgent
-from data_processor import DataProcessor
-import logging
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -18,6 +19,7 @@ logger = logging.getLogger(__name__)
 class ConversationTester:
     def __init__(self, openai_api_key: str, output_file: str = "conversation_results.csv"):
         self.agent = JTCGCRMAgent(openai_api_key)
+        self.agent_functions = self.agent.agent_functions  # Access to detect_intent
         self.output_file = output_file
         self.results = []
 
@@ -89,10 +91,40 @@ class ConversationTester:
             # Measure response time
             start_time = time.time()
 
-            # Get agent response for the last user message
+            # Use proper conversation input list for multi-turn conversations
             try:
                 if last_user_message:
-                    agent_response = self.agent.chat(last_user_message)
+                    if len(conversation) > 1:
+                        # Multi-round conversation: build proper input list
+                        # First, simulate the conversation up to the second-to-last message
+                        conversation_input = []
+
+                        # Process all messages except the last one
+                        for i, message in enumerate(conversation[:-1]):
+                            role = message.get("role", "")
+                            content = message.get("content", [])
+                            if content and len(content) > 0:
+                                text = content[0].get("text", "")
+
+                                if role == "user":
+                                    # Detect intent for user messages
+                                    intent = self.agent_functions.detect_intent(text)
+                                    contextual_message = f"[用戶意圖: {intent}] {text}"
+                                    conversation_input.append({"role": "user", "content": contextual_message})
+                                elif role == "assistant":
+                                    conversation_input.append({"role": "assistant", "content": text})
+
+                        # Add the final user message
+                        intent = self.agent_functions.detect_intent(last_user_message)
+                        contextual_message = f"[用戶意圖: {intent}] {last_user_message}"
+                        conversation_input.append({"role": "user", "content": contextual_message})
+
+                        # Call agent with conversation history using input list
+                        agent_response = self.agent.chat(last_user_message, conversation_input=conversation_input)
+                    else:
+                        # Single-round conversation: no history needed
+                        agent_response = self.agent.chat(last_user_message)
+
                     # Add agent response to chat history
                     chat_history_parts.append(f"JTCG Agent: {agent_response}")
                 else:

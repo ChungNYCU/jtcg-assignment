@@ -2,7 +2,6 @@ import pandas as pd
 import json
 from typing import Dict, List, Any, Optional
 from pydantic import BaseModel, Field
-from pathlib import Path
 
 class KnowledgeItem(BaseModel):
     id: str
